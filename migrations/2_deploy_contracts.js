@@ -7,7 +7,7 @@ module.exports = async function(deployer) {
   const token = await DemoToken.deployed();
 
   // Deploy the TokenSwap smart contract on the blockchain.
-  await deployer.deploy(TokenSwap);
+  await deployer.deploy(TokenSwap, token.address);
   const tokenSwap = await TokenSwap.deployed();
 
   // Transfer all the tokens to the exchange address

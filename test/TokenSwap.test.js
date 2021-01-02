@@ -7,10 +7,20 @@ require("chai")
   .use(require("chai-as-promised"))
   .should();
 
-contract("TokenSwap", accounts => {
+function tokens(n) {
+  return web3.utils.toWei(n, "ether");
+}
+
+contract("TokenSwap", ([deployer, investor]) => {
+  let token, tokenSwap;
+  before(async () => {
+    token = await Token.new();
+    tokenSwap = await TokenSwap.new(token.address);
+    await token.transfer(tokenSwap.address, tokens("1000000"));
+  });
+
   describe("Token deployment", async () => {
     it("contract has a name", async () => {
-      let token = await Token.new();
       const name = await token.name();
       assert.equal(name, "DemoToken");
     });
@@ -18,17 +28,32 @@ contract("TokenSwap", accounts => {
 
   describe("TokenSwap deployment", async () => {
     it("contract has a name", async () => {
-      let tokenSwap = await TokenSwap.new();
       const name = await tokenSwap.name();
       assert.equal(name, "TokenSwap Token Exchange");
     });
   });
 
   it("contract has tokens", async () => {
-    let token = await Token.new();
-    let tokenSwap = await TokenSwap.new();
-    await token.transfer(tokenSwap.address, "1000000000000000000000000");
     let balance = await token.balanceOf(tokenSwap.address);
-    assert.equal(balance.toString(), "1000000000000000000000000");
+    assert.equal(balance.toString(), tokens("1000000"));
+  });
+
+  describe("buy tokens", async () => {
+    let result;
+    before(async () => {
+      result = await tokenSwap.buyTokens({
+        from: investor,
+        value: tokens("1")
+      });
+    });
+    it("allows users to purchase token for a fixed price", async () => {
+      let investorBalance = await token.balanceOf(investor);
+      assert.equal(investorBalance.toString(), tokens("100"));
+
+      let tokenSwapBalance = await token.balanceOf(tokenSwap.address);
+      assert.equal(tokenSwapBalance.toString(), tokens("999900"));
+      tokenSwapBalance = await web3.eth.getBalance(tokenSwap.address);
+      assert.equal(tokenSwapBalance.toString(), tokens("1"));
+    });
   });
 });
